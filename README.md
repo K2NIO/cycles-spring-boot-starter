@@ -1,4 +1,4 @@
-# Cycles: The Economic Circuit Breaker for Spring AI
+# Cycles: The Economic Governance Layer for Autonomous Agents (Spring AI)
 
 **Stop your autonomous agents from bankrupting you.**
 
