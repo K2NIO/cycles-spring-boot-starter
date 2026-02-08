@@ -1,41 +1,60 @@
-# Cycles: The Economic Governance Layer for Autonomous Agents (Spring AI)
+# Cycles: Economic Governance for Autonomous Agents (Spring AI)
 
 **Stop your autonomous agents from bankrupting you.**
 
-Cycles is a JVM-level governance layer for Spring Boot applications. It enforces **deterministic economic limits** on guarded AI execution, preventing infinite loops, runaway recursion, and API bill shock *before* they happen.
+Cycles is a JVM-level **economic governance layer** for Spring Boot applications.
+It enforces **deterministic spend limits** on guarded AI execution—preventing infinite loops, runaway recursion, and API bill shock *before* they happen.
 
-Rate limits control speed. **Cycles controls spend.**
+Rate limiters control **velocity**.
+**Cycles controls economic exposure.**
 
 ---
 
-## 🛑 The Problem: "The $5,000 Loop"
+## 🛑 The Problem: “The $5,000 Loop”
 
 You deploy an agent to summarize daily news.
-A bug in the prompt causes it to retry endlessly on a `500` error from the provider.
-You have a standard Rate Limiter (`100 req/min`).
 
-* **00:00:** Agent starts looping.
-* **00:10:** Rate limiter allows 1,000 requests.
-* **01:00:** Rate limiter allows 6,000 requests.
-* **08:00:** You wake up to a **$4,500 OpenAI bill**.
+A prompt bug causes it to retry endlessly on a `500` error from the provider.
+You have a standard rate limiter: `100 req/min`.
 
-**Rate limits do not stop bad logic. They just make it slower.**
+**What happens:**
+
+* **00:00** — Agent enters a retry loop
+* **00:10** — Rate limiter allows ~1,000 calls
+* **01:00** — ~6,000 calls
+* **08:00** — You wake up to a **$4,500 OpenAI bill**
+
+**Rate limits do not stop bad logic. They only slow it down.**
 
 ---
 
-## ⚡ The Solution: "Digital Thermodynamics"
+## ⚡ The Solution: Economic Governance
 
-Cycles introduces a new primitive: **The Cycle**.
-1 Cycle = 1 Unit of Risk.
+Cycles introduces a new primitive: **the Cycle**.
 
-A Cycle is a normalized unit of execution risk.
-You decide what actions cost more based on blast radius.
+> **1 Cycle = 1 unit of execution risk**
 
-Instead of limiting *requests per second*, you limit *total risk budget*. When the budget hits 0, the execution **halts deterministically**.
+A Cycle is a normalized measure of economic risk.
+You decide what actions cost more based on blast radius:
 
-### The "Magic" Annotation
+* LLM calls
+* Tool invocations
+* Writes
+* Deployments
+* External side effects
 
-Add one dependency. Add one annotation. Sleep soundly.
+Instead of limiting *requests per second*, Cycles limits **total risk budget per execution**.
+
+As the budget tightens, Cycles **degrades behavior safely**.
+When the budget is exhausted, execution **halts deterministically**.
+
+---
+
+## ✨ The Annotation
+
+Add one dependency.
+Add one annotation.
+Define a hard economic envelope.
 
 ```java
 @Service
@@ -43,135 +62,235 @@ public class ResearchAgent {
 
     private final OpenAiClient ai;
 
-    // 🛑 HARD STOP: If this method (and its sub-calls) burns > 50 Cycles (high-risk budget),
-    // execution halts deterministically with a non-recoverable exception.
-    @Cycles(profile = "agent-default", limit = 50, onExhaust = ExhaustionAction.HALT)
+    // Economic envelope for this execution.
+    // As the budget tightens, Cycles degrades capability and throttles.
+    // If the execution budget is exhausted, Cycles halts deterministically
+    // (with optional fallback or partial output per policy).
+    @Cycles(
+        profile = "agent-default",
+        bucket = "execution",
+        limit = 50
+    )
     public Report generateMarketReport(String ticker) {
-        
-        // Even if this internal method loops forever, 
-        // Cycles will cut the power at $0.50.
-        return ai.recursiveDeepDive(ticker); 
+
+        // Even if this call loops indefinitely,
+        // Cycles will cut the execution once the risk budget is exhausted.
+        return ai.recursiveDeepDive(ticker);
     }
 }
-
 ```
 
----
-
-## 🚀 Features
-
-* **Atomic Accounting:** Uses Lua scripts on Redis for sub-millisecond, race-condition-free budget decrements.
-* **Zero-Latency:** Adds <2ms overhead to your API calls.
-* **Context Propagation:** The budget travels with the request. If Service A calls Service B, they share the same Risk Budget.
-* **"Panic Button":** Update budgets in real-time via the Dashboard without redeploying code.
-* **Audit-Ready:** Every burned Cycle is logged with a cryptographic signature (Enterprise Plan).
+This applies to the **entire call graph**—not just this method.
 
 ---
+
+## 🚀 Key Features
+
+* **Atomic Accounting**
+  Budget authorization and decrement happen atomically via Redis Lua scripts
+  (single round trip, no race conditions).
+
+* **Low Overhead**
+  Typically single-digit millisecond overhead per charged action
+  (Redis RTT dependent).
+
+* **Context Propagation**
+  Budgets travel with execution context.
+  If Service A calls Service B, they share the same risk budget.
+
+* **Real-Time Control (“Panic Button”)**
+  Adjust budgets or policies live—no redeploy required.
+
+* **Audit-Ready (Enterprise)**
+  Tamper-evident execution ledger for compliance and forensic analysis.
+
+---
+
 ## ⚠️ Enforcement Model (Important)
-Cycles enforces execution limits only on guarded code paths
+
+Cycles enforces spend limits **only on guarded execution paths**
 (via `@Cycles` and Spring AOP interception).
 
-* Guarded execution → budgets enforced deterministically
-* Unguarded execution → allowed, but not invisible (surfaced in the dashboard)
+* **Guarded execution** → deterministic enforcement
+* **Unguarded execution** → allowed, but surfaced in the dashboard
 
-This allows teams to:
-* start with visibility
-* progressively harden enforcement
-* avoid breaking existing systems
+This lets teams:
+
+* Start with visibility
+* Gradually harden enforcement
+* Avoid breaking existing systems
+
+---
 
 ## 📦 Installation
 
-Add the starter to your `pom.xml`:
+Add the starter:
 
 ```xml
 <dependency>
-    <groupId>io.cycles</groupId>
-    <artifactId>cycles-spring-boot-starter</artifactId>
-    <version>0.1.0-beta</version>
+  <groupId>io.cycles</groupId>
+  <artifactId>cycles-spring-boot-starter</artifactId>
+  <version>0.1.0-beta</version>
 </dependency>
-
 ```
 
-Configure the Cycles ledger (runs on local Redis by default):
+---
+
+## ⚙️ Configuration
+
+Cycles uses Redis as a distributed execution ledger.
 
 ```yaml
 cycles:
   enabled: true
   storage: redis
+
   redis:
     host: localhost
     port: 6379
 
   profiles:
+
     agent-default:
-      onExhaust: HALT
+      description: "Default agent execution profile with progressive degradation"
+
       buckets:
-        - scope: EXECUTION
+        - name: execution
+          scope: EXECUTION
           key: "{executionId}"
           initialLimit: 200
           ttlSeconds: 3600
 
-        - scope: AGENT
+          thresholds:
+            spent:
+              yellow: 0.70
+              orange: 0.90
+              red: 1.00
+
+        - name: agent
+          scope: AGENT
           key: "{agentId}"
           initialLimit: 5000
 
-        - scope: GLOBAL
+        - name: global
+          scope: GLOBAL
           key: "global"
           initialLimit: 100000
 
+      policies:
+        green:
+          allow:
+            actions: ["*"]
+
+        yellow:
+          degrade:
+            modelTier: downgrade
+            contextWindow: reduce
+          throttle:
+            minDelayMs: 250
+
+        orange:
+          block:
+            actions: [WRITE, EXECUTE, DEPLOY]
+          degrade:
+            modelTier: minimal
+          throttle:
+            minDelayMs: 1000
+          retries:
+            max: 1
+
+        red:
+          onExhaust: HALT
+          emit:
+            mode: PARTIAL_RESULT
+          fallback:
+            strategy: SUMMARY_ONLY
+
+      autoExtend:
+        enabled: true
+        maxExtra: 50
+        windowSeconds: 300
+        conditions:
+          - errorRate < 0.01
+          - riskLevel <= LOW
+          - noBlockedActions == true
+
+      notifications:
+        onTransition:
+          - to: ORANGE
+            channel: LOG
+          - to: RED
+            channel: USER
+            includeOptions: true
+
+
     group-strict:
-      onExhaust: THROW_EXCEPTION
+      description: "Strict team-level budget (no degradation)"
+
       buckets:
-        - scope: GROUP
+        - name: group
+          scope: GROUP
           key: "{teamId}"
           initialLimit: 20000
-        - scope: GLOBAL
+
+        - name: global
+          scope: GLOBAL
           key: "global"
           initialLimit: 100000
+
+      policies:
+        red:
+          onExhaust: THROW_EXCEPTION
 ```
 
 ---
 
 ## 🆚 Cycles vs. Rate Limiters
 
-| Feature | Rate Limiter (Resilience4j / Bucket4j) | Cycles (Economic Governance) |
-| --- | --- | --- |
-| **Metric** | Requests / Second | **Cost / Session** |
-| **Goal** | Protect the *Server* from overload | Protect the *Wallet* from bankruptcy |
-| **Outcome** | Throttles traffic (Slows down) | **Kills process** (Stops completely) |
-| **Context** | Single Service | **Distributed Trace** (A calls B calls C) |
-| **Use Case** | High Traffic APIs | **Autonomous Agents & LLMs** |
+| Feature  | Rate Limiters     | Cycles                        |
+| -------- | ----------------- | ----------------------------- |
+| Metric   | Requests / second | **Risk / execution**          |
+| Protects | Servers           | **Wallets**                   |
+| Response | Throttle          | **Degrade → Restrict → Halt** |
+| Scope    | Single service    | **Distributed call graph**    |
+| Use Case | Traffic spikes    | **Autonomous agents & LLMs**  |
 
 ---
 
-## 🛠️ Architecture
+## 🧠 Architecture
 
-Cycles sits between your code and the execution. It uses a **Check-Then-Act** interceptor pattern.
+Cycles uses an **atomic authorize-and-burn interceptor**.
 
-1. **Intercept:** `@Cycles` pauses the request.
-2. **Verify:** Checks the `cycles:ledger:{agent_id}` in Redis.
-3. **Burn:** Atomically decrements the cost (e.g., `-5`).
-4. **Verdict:**
-* ✅ **Solvent:** Proceed.
-* ❌ **Insolvent:** Throw `CycleExhaustedException: Execution halted after exceeding risk budget`.
+1. **Intercept** guarded execution
+2. **Authorize + decrement** budget atomically in Redis
+3. **Verdict**
+
+   * ✅ Solvent → proceed
+   * ❌ Insolvent → halt execution (exception + optional fallback)
+
+No probabilistic limits. No best-effort throttling.
+Execution is **deterministically governed**.
 
 ---
 
 ## 🔮 Roadmap
 
-* **v0.1:** Local Redis implementation & Spring AOP. (Beta)
-* **v0.5:** Dashboard for real-time monitoring.
-* **v1.0:** `X-Cycles-Budget` Cycles Context HTTP header for cross-service propagation.
+* **v0.1** — Spring AOP + Redis (Beta)
+* **v0.5** — Monitoring dashboard
+* **v1.0** — `X-Cycles-Budget` HTTP context propagation
 
 ---
 
-## 🤝 Join the Private Beta
+## 🤝 Private Beta
 
-We are currently onboarding **Fintech & Enterprise Java teams** for the private beta.
-If you are running Spring AI in production and worry about cost, let's talk.
+We are onboarding **Fintech and Enterprise Java teams** running Spring AI in production.
 
-**[👉 Request Access to the JAR](https://docs.google.com/forms/d/e/1FAIpQLSd4FB1W_NrmHqf873lUUSP2V6_uWEVG2J6OteQ9hM8yWynKNQ/viewform?usp=dialog)**
+If runaway AI spend keeps you up at night, let’s talk.
+
+👉 **[Request Access](https://docs.google.com/forms/d/e/1FAIpQLSd4FB1W_NrmHqf873lUUSP2V6_uWEVG2J6OteQ9hM8yWynKNQ/viewform?usp=dialog)**
 
 ---
 
 **License:** Apache 2.0
+
+---
