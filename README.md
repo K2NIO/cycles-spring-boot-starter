@@ -149,8 +149,6 @@ If you are running Spring AI in production and worry about cost, let's talk.
 
 **[👉 Request Access to the JAR](https://docs.google.com/forms/d/e/1FAIpQLSd4FB1W_NrmHqf873lUUSP2V6_uWEVG2J6OteQ9hM8yWynKNQ/viewform?usp=dialog)**
 
-*(Auditing slots available for Q1 2026)*
-
 ---
 
 **License:** Apache 2.0
