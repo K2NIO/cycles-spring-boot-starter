@@ -45,7 +45,7 @@ public class ResearchAgent {
 
     // 🛑 HARD STOP: If this method (and its sub-calls) burns > 50 Cycles (high-risk budget),
     // execution halts deterministically with a non-recoverable exception.
-    @Cycles(limit = 50, action = ExhaustionAction.HALT)
+    @Cycles(profile = "agent-default", limit = 50, onExhaust = ExhaustionAction.HALT)
     public Report generateMarketReport(String ticker) {
         
         // Even if this internal method loops forever, 
@@ -101,10 +101,33 @@ cycles:
   redis:
     host: localhost
     port: 6379
-  default-policy:
-    limit: 100
-    action: THROW_EXCEPTION
 
+  profiles:
+    agent-default:
+      onExhaust: HALT
+      buckets:
+        - scope: EXECUTION
+          key: "{executionId}"
+          initialLimit: 200
+          ttlSeconds: 3600
+
+        - scope: AGENT
+          key: "{agentId}"
+          initialLimit: 5000
+
+        - scope: GLOBAL
+          key: "global"
+          initialLimit: 100000
+
+    group-strict:
+      onExhaust: THROW_EXCEPTION
+      buckets:
+        - scope: GROUP
+          key: "{teamId}"
+          initialLimit: 20000
+        - scope: GLOBAL
+          key: "global"
+          initialLimit: 100000
 ```
 
 ---
