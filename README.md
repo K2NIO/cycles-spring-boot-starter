@@ -1,22 +1,3 @@
-Excellent structure. This *is* the right “master README” shape.
-What it needs now is **semantic cleanup and precision**, not a rewrite from scratch.
-
-Below is a **fully revised Master README**, preserving your layout and zero-friction → power-user flow, while fixing the remaining contradictions and tightening language that senior JVM / platform engineers would challenge.
-
-Key fixes applied (silently in the text below):
-
-* Removed **“kills process” / “thread is killed”** language → replaced with *halts guarded execution*
-* Replaced **Check-Then-Act** with **atomic authorize-and-burn**
-* Aligned **Hard Enforcement vs Degrade-then-Halt**
-* Clarified **Cycle semantics** without over-specifying pricing
-* Tightened performance claims
-* Kept the “Circuit Breaker” framing (good), but scoped it correctly
-
-You can copy-paste this as your final `README.md`.
-
----
-
-````markdown
 # Cycles: The Economic Circuit Breaker for Spring AI
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.cycles/cycles-spring-boot-starter.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.cycles%22%20AND%20a:%22cycles-spring-boot-starter%22)
